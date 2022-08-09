@@ -31,7 +31,7 @@
 #
 
 # define source files
-SOURCES := $(wildcard src/*.cxx)
+SOURCES := $(wildcard upsilon_polarization/src/*.cxx)
 
 # define header, object and dependency files based on source files
 HEADERS := $(SOURCES:.cxx=.h)
@@ -82,18 +82,27 @@ NORMAL=$(shell tput sgr0)
 all: upsilon_polarization
 
 clean:
-	@rm -f $(OBJECTS) $(DEPENDS) lib/*
+	@rm -f $(OBJECTS) $(DEPENDS) upsilon_polarization/lib/*
 	@rm -rf lib
+	@rm -rf validation_outputs
 
 test:
 	pytest --verbosity=99
+
+validation: validation_extreme
+
+
+validation_extreme: 
+	@mkdir -p validation_outputs
+	@rm -rf validation_outputs/extreme*
+	python3 -m upsilon_polarization.validation.val_extreme_scenarios
 
 upsilon_polarization: $(OBJECTS)
 	@echo "Building shared library $@.so ..."
 	$(LD) $^ $(LDFLAGS) -o $@.so
 	@echo "$@.so done"
-	@mkdir -p lib
-	@mv $@.so lib/.
+	@mkdir -p upsilon_polarization/lib
+	@mv $@.so upsilon_polarization/lib/.
 
 ########################################
 # rules
