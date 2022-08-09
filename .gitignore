@@ -5,3 +5,4 @@
 *.o
 validation_outputs
 *.pyc
+.pytest_cache
