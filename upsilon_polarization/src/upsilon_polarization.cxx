@@ -15,7 +15,7 @@ extern "C"
 {
 	const double MUON_MASS = 0.1056583755;
 	const double PROTON_MASS = 0.93827208816;
-	const double BEAM_ENERGY = 13000.0;
+	const double PROTON_ENERGY = 13000.0;
 
 	double upsilon_polarization_cos_angle(double pt_mu_plus, double eta_mu_plus, double phi_mu_plus, double pt_mu_minus, double eta_mu_minus, double phi_mu_minus)
 	{
@@ -106,35 +106,50 @@ extern "C"
 		auto photon = PtEtaPhiMVector(pt_photon, eta_photon, phi_photon, 0.0);
 		auto boson = (upsilon + photon);
 
-		// define beam projectile and target
-		const double BEAM_MOMEMTUM = sqrt(pow2(BEAM_ENERGY) - pow2(PROTON_MASS));
+		// define beam beam and target
+		const double PROTON_MOMEMTUM = sqrt(pow2(PROTON_ENERGY) - pow2(PROTON_MASS));
+		auto proton_plus = PxPyPzEVector(0., 0., PROTON_MOMEMTUM, PROTON_ENERGY);
+		auto proton_minus = PxPyPzEVector(0., 0., -PROTON_MOMEMTUM, PROTON_ENERGY);
 
-		PxPyPzEVector projectile; // projectile
-		PxPyPzEVector target;	  // target
+		PxPyPzEVector beam;	  // beam
+		PxPyPzEVector target; // target
 
+		// looks like the CMS paper definition is swapped...
 		if (boson.pz() >= 0)
 		{
-			projectile = PxPyPzEVector(0., 0., BEAM_MOMEMTUM, BEAM_ENERGY); // projectile
-			target = PxPyPzEVector(0., 0., -BEAM_MOMEMTUM, BEAM_ENERGY);	// target
+			beam = proton_plus;
+			target = proton_minus;
 		}
 		else
 		{
-			projectile = PxPyPzEVector(0., 0., -BEAM_MOMEMTUM, BEAM_ENERGY); // projectile
-			target = PxPyPzEVector(0., 0., BEAM_MOMEMTUM, BEAM_ENERGY);		 // target
+			beam = proton_minus;
+			target = proton_plus;
 		}
 
+		// // just trying to swap the beam x target definition
+		// if (boson.pz() <= 0)
+		// {
+		// 	beam = proton_plus;
+		// 	target = proton_minus;
+		// }
+		// else
+		// {
+		// 	beam = proton_minus;
+		// 	target = proton_plus;
+		// }
+
 		// beta to boost to CS frame
-		auto beta_upsilon_photon = (upsilon + photon).BoostToCM();
+		auto beta_boson = boson.BoostToCM();
 
 		// boost to CS frame
-		auto upsilon_CS_frame = VectorUtil::boost(upsilon, beta_upsilon_photon);
-		// auto photon_CS_frame = VectorUtil::boost(photon, beta_upsilon_photon); // not used
-		auto projectile_CS_frame = VectorUtil::boost(projectile, beta_upsilon_photon);
-		auto target_CS_frame = VectorUtil::boost(target, beta_upsilon_photon);
+		auto upsilon_CS_frame = VectorUtil::boost(upsilon, beta_boson);
+		// auto photon_CS_frame = VectorUtil::boost(photon, beta_boson); // not used
+		auto beam_CS_frame = VectorUtil::boost(beam, beta_boson);
+		auto target_CS_frame = VectorUtil::boost(target, beta_boson);
 
 		// Determine x, y and z axis for the CS frame
-		auto z_axis_CS_frame = (projectile_CS_frame.Vect().Unit() - target_CS_frame.Vect().Unit()).Unit();
-		auto y_axis_CS_frame = (projectile_CS_frame.Vect().Unit().Cross(target_CS_frame.Vect().Unit())).Unit();
+		auto z_axis_CS_frame = (beam_CS_frame.Vect().Unit() - target_CS_frame.Vect().Unit()).Unit();
+		auto y_axis_CS_frame = (beam_CS_frame.Vect().Unit().Cross(target_CS_frame.Vect().Unit())).Unit();
 		auto x_axis_CS_frame = y_axis_CS_frame.Cross(z_axis_CS_frame).Unit();
 
 		// BIG_PHI
@@ -142,7 +157,7 @@ extern "C"
 
 		// cos_BIG_THETA
 		double cos_BIG_THETA = z_axis_CS_frame.Dot((upsilon_CS_frame.Vect()).Unit());
-		// Theta CS is not properly defined for Like-Sign muons
+		// Theta CS is not properly defined for Like-Sign (?)
 		if (cos_BIG_THETA < 0)
 			cos_BIG_THETA = -cos_BIG_THETA;
 		double BIG_THETA = acos(cos_BIG_THETA);
@@ -157,7 +172,7 @@ extern "C"
 
 		// cos_theta
 		double cos_theta = z_axis_CS_frame.Dot((gen_mu_plus_upsilon_frame.Vect()).Unit());
-		// Theta CS is not properly defined for Like-Sign muons
+		// Theta CS is not properly defined for Like-Sign  (?)
 		if (cos_theta < 0)
 			cos_theta = -cos_theta;
 		double theta = acos(cos_theta);
@@ -195,12 +210,7 @@ extern "C"
 		void *A2_high_y_syst;
 	} CoefficientsHists;
 
-	// void free_CoefficientsHists(CoefficientsHists *p)
-	// {
-	// 	free(p);
-	// }
-
-	CoefficientsHists load_CMS_data()
+	void *load_CMS_data()
 	{
 
 		auto cms_Z_polarization_data_ = static_cast<char *>(static_cast<void *>(cms_Z_polarization_data));
@@ -230,27 +240,27 @@ extern "C"
 		static auto A1_high_y_syst_hist_ = (*file.Get<TH1F>("Table 2/Hist1D_y2_e2"));
 		static auto A2_high_y_syst_hist_ = (*file.Get<TH1F>("Table 2/Hist1D_y3_e2"));
 
-		auto coefficients_hists = CoefficientsHists();
-		coefficients_hists.A0_low_y = static_cast<void*>(&A0_low_y_hist_);
-		coefficients_hists.A1_low_y = static_cast<void*>(&A1_low_y_hist_);
-		coefficients_hists.A2_low_y = static_cast<void*>(&A2_low_y_hist_);
-		coefficients_hists.A0_high_y = static_cast<void*>(&A0_high_y_hist_);
-		coefficients_hists.A1_high_y = static_cast<void*>(&A1_high_y_hist_);
-		coefficients_hists.A2_high_y = static_cast<void*>(&A2_high_y_hist_);
-		coefficients_hists.A0_low_y_stat = static_cast<void*>(&A0_low_y_stat_hist_);
-		coefficients_hists.A1_low_y_stat = static_cast<void*>(&A1_low_y_stat_hist_);
-		coefficients_hists.A2_low_y_stat = static_cast<void*>(&A2_low_y_stat_hist_);
-		coefficients_hists.A0_high_y_stat = static_cast<void*>(&A0_high_y_stat_hist_);
-		coefficients_hists.A1_high_y_stat = static_cast<void*>(&A1_high_y_stat_hist_);
-		coefficients_hists.A2_high_y_stat = static_cast<void*>(&A2_high_y_stat_hist_);
-		coefficients_hists.A0_low_y_syst = static_cast<void*>(&A0_low_y_syst_hist_);
-		coefficients_hists.A1_low_y_syst = static_cast<void*>(&A1_low_y_syst_hist_);
-		coefficients_hists.A2_low_y_syst = static_cast<void*>(&A2_low_y_syst_hist_);
-		coefficients_hists.A0_high_y_syst = static_cast<void*>(&A0_high_y_syst_hist_);
-		coefficients_hists.A1_high_y_syst = static_cast<void*>(&A1_high_y_syst_hist_);
-		coefficients_hists.A2_high_y_syst = static_cast<void*>(&A2_high_y_syst_hist_);
+		static auto coefficients_hists = CoefficientsHists();
+		coefficients_hists.A0_low_y = static_cast<void *>(&A0_low_y_hist_);
+		coefficients_hists.A1_low_y = static_cast<void *>(&A1_low_y_hist_);
+		coefficients_hists.A2_low_y = static_cast<void *>(&A2_low_y_hist_);
+		coefficients_hists.A0_high_y = static_cast<void *>(&A0_high_y_hist_);
+		coefficients_hists.A1_high_y = static_cast<void *>(&A1_high_y_hist_);
+		coefficients_hists.A2_high_y = static_cast<void *>(&A2_high_y_hist_);
+		coefficients_hists.A0_low_y_stat = static_cast<void *>(&A0_low_y_stat_hist_);
+		coefficients_hists.A1_low_y_stat = static_cast<void *>(&A1_low_y_stat_hist_);
+		coefficients_hists.A2_low_y_stat = static_cast<void *>(&A2_low_y_stat_hist_);
+		coefficients_hists.A0_high_y_stat = static_cast<void *>(&A0_high_y_stat_hist_);
+		coefficients_hists.A1_high_y_stat = static_cast<void *>(&A1_high_y_stat_hist_);
+		coefficients_hists.A2_high_y_stat = static_cast<void *>(&A2_high_y_stat_hist_);
+		coefficients_hists.A0_low_y_syst = static_cast<void *>(&A0_low_y_syst_hist_);
+		coefficients_hists.A1_low_y_syst = static_cast<void *>(&A1_low_y_syst_hist_);
+		coefficients_hists.A2_low_y_syst = static_cast<void *>(&A2_low_y_syst_hist_);
+		coefficients_hists.A0_high_y_syst = static_cast<void *>(&A0_high_y_syst_hist_);
+		coefficients_hists.A1_high_y_syst = static_cast<void *>(&A1_high_y_syst_hist_);
+		coefficients_hists.A2_high_y_syst = static_cast<void *>(&A2_high_y_syst_hist_);
 
-		return coefficients_hists;
+		return static_cast<void*>(&coefficients_hists);
 	}
 
 	typedef struct AngularCoefficients
@@ -309,8 +319,6 @@ extern "C"
 		return angular_coefficients;
 	}
 
-	// How to pass string from ctpes:
-	// https://stackoverflow.com/questions/37966432/how-to-pass-const-char-from-python-to-c-function
 	double get_weight_full_method(double pt_mu_plus,
 								  double eta_mu_plus,
 								  double phi_mu_plus,
@@ -320,7 +328,7 @@ extern "C"
 								  double pt_photon,
 								  double eta_photon,
 								  double phi_photon,
-								  const CoefficientsHists &coefficients_hists,
+								  void *coefficients_hists_ptr,
 								  double z_rapidity,
 								  double qT,
 								  int syst)
@@ -331,6 +339,8 @@ extern "C"
 			printf("[ERROR] [POLARIZATION WEIGHT] Invalid argument. \"syst\" should be -1 (DOWN), 0 (NOMINAL) or +1 (UP).");
 			exit(-1);
 		}
+
+		auto coefficients_hists = *(static_cast<CoefficientsHists *>(coefficients_hists_ptr));
 
 		auto cs_angles = get_CSAngles(pt_mu_plus, eta_mu_plus, phi_mu_plus, pt_mu_minus, eta_mu_minus, phi_mu_minus, pt_photon, eta_photon, phi_photon);
 		double T = cs_angles.BIG_THETA;

@@ -89,7 +89,7 @@ clean:
 test:
 	pytest --verbosity=99
 
-validation: validation_extreme
+validation: validation_extreme validation_full
 
 
 validation_extreme: 
