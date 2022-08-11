@@ -9,14 +9,14 @@ upslib.upsilon_polarization_cos_angle.restype = c_double
 upslib.get_weight_extreme_scenarios.argtypes = [c_double, c_int]
 upslib.get_weight_extreme_scenarios.restype = c_double
 
-__all__ = ["get_weight"]
+__all__ = ["get_weight", "get_cos_angle"]
 
 def get_cos_angle(pt_plus, eta_plus, phi_plus, pt_minus, eta_minus, phi_minus):
     return upslib.upsilon_polarization_cos_angle(pt_plus, eta_plus, phi_plus, pt_minus, eta_minus, phi_minus)
 
 def get_weight(cos_angle: float, syst: int) -> float:
     if syst != -1 and syst != 0 and syst != +1:
-        raise ValueError(f"The provided value for 'syst' ({syst}) is not valid. It should be -1, 0 or +1.")
+        raise ValueError(f"The provided value for 'syst' ({syst}) is not valid. It should be -1 (longitudinal), 0 (unpolarized) or +1 (transverse).")
 
     if cos_angle > +1 or cos_angle < -1:
         raise ValueError(f"The provided value for 'cos_angle' ({cos_angle}) is not valid. It should between -1, and +1.")

@@ -97,6 +97,9 @@ validation_extreme:
 	@rm -rf validation_outputs/extreme*
 	python3 -m upsilon_polarization.validation.val_extreme_scenarios
 
+validation_full: 
+	python3 -m upsilon_polarization.validation.val_full_method
+
 upsilon_polarization: $(OBJECTS)
 	@echo "Building shared library $@.so ..."
 	$(LD) $^ $(LDFLAGS) -o $@.so

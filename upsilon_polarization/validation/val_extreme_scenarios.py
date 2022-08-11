@@ -24,9 +24,9 @@ if __name__ == "__main__":
 
     N_BINS = 40
 
-    ax.hist(cos_angles_uniform, bins=N_BINS, weights=cos_angles_uniform_weights, label = "Uniform", alpha=1, histtype='step')
-    ax.hist(cos_angles_uniform_pol_plus, bins=N_BINS, weights=cos_angles_uniform_pol_plus_weights, label = "Plus", alpha=1, histtype='step')
-    ax.hist(cos_angles_uniform_pol_minus, bins=N_BINS, weights=cos_angles_uniform_pol_minus_weights, label = "Minus", alpha=1, histtype='step')
+    ax.hist(cos_angles_uniform, bins=N_BINS, weights=cos_angles_uniform_weights, label = "unpolarized", alpha=1, histtype='step')
+    ax.hist(cos_angles_uniform_pol_plus, bins=N_BINS, weights=cos_angles_uniform_pol_plus_weights, label = "transverse", alpha=1, histtype='step')
+    ax.hist(cos_angles_uniform_pol_minus, bins=N_BINS, weights=cos_angles_uniform_pol_minus_weights, label = "longitudinal", alpha=1, histtype='step')
 
     ax.legend()
 

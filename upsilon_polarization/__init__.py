@@ -1,1 +1,2 @@
 import upsilon_polarization.extreme_scenarios as extreme_scenarios
+import upsilon_polarization.full_method as full_method
