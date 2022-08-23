@@ -1,8 +1,5 @@
 import numpy as np
 
-# import matplotlib.pyplot as plt
-
-
 from upsilon_polarization import full_method
 
 if __name__ == "__main__":
@@ -27,13 +24,13 @@ if __name__ == "__main__":
 
     N_SAMPLES = 6000
     wgts = full_method.get_weight(
-                                    np.random.uniform(1,5000,N_SAMPLES), 
+                                    np.random.uniform(1,1000,N_SAMPLES), 
                                     np.random.uniform(-2.5,2.5,N_SAMPLES), 
                                     np.random.uniform(-3,3,N_SAMPLES), 
-                                    np.random.uniform(1,5000,N_SAMPLES), 
+                                    np.random.uniform(1,1000,N_SAMPLES), 
                                     np.random.uniform(-2.5,2.5,N_SAMPLES), 
                                     np.random.uniform(-3,3,N_SAMPLES),
-                                    np.random.uniform(1,5000,N_SAMPLES), 
+                                    np.random.uniform(1,1000,N_SAMPLES), 
                                     np.random.uniform(-2.5,2.5,N_SAMPLES), 
                                     np.random.uniform(-3,3,N_SAMPLES), 
                                     np.random.uniform(-8,8,N_SAMPLES), 

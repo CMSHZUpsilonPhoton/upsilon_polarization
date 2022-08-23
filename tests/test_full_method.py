@@ -6,7 +6,7 @@ from upsilon_polarization import full_method
 cms_data = full_method.load_CMS_data()
 
 def test_get_weight_full_method_scalars():
-    assert full_method.get_weight(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1) == -4.073500193034304
+    assert full_method.get_weight(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1) == -4.071550835635227
 
 a = np.ones(60)
 def test_get_weight_full_method_arrays():

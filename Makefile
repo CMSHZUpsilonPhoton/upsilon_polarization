@@ -82,30 +82,33 @@ NORMAL=$(shell tput sgr0)
 all: upsilon_polarization
 
 clean:
-	@rm -f $(OBJECTS) $(DEPENDS) upsilon_polarization/lib/*
-	@rm -rf lib
-	@rm -rf validation_outputs
+	rm -f $(OBJECTS) $(DEPENDS) upsilon_polarization/lib/*
+	rm -rf lib
+	rm -rf validation_outputs
 
 test:
 	pytest --verbosity=99
 
-validation: validation_extreme validation_full
-
+validation: validation_extreme validation_full validation_with_MC_sample
 
 validation_extreme: 
-	@mkdir -p validation_outputs
-	@rm -rf validation_outputs/extreme*
+	mkdir -p validation_outputs
+	rm -rf validation_outputs/extreme*
 	python3 -m upsilon_polarization.validation.val_extreme_scenarios
 
 validation_full: 
 	python3 -m upsilon_polarization.validation.val_full_method
 
+validation_with_MC_sample: 
+	mkdir -p validation_outputs
+	root -l -b -q "upsilon_polarization/validation/validation_Z.C+(1)"
+
 upsilon_polarization: $(OBJECTS)
-	@echo "Building shared library $@.so ..."
+	echo "Building shared library $@.so ..."
 	$(LD) $^ $(LDFLAGS) -o $@.so
-	@echo "$@.so done"
-	@mkdir -p upsilon_polarization/lib
-	@mv $@.so upsilon_polarization/lib/.
+	echo "$@.so done"
+	mkdir -p upsilon_polarization/lib
+	mv $@.so upsilon_polarization/lib/.
 
 ########################################
 # rules

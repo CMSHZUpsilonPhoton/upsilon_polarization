@@ -6,3 +6,4 @@
 validation_outputs
 *.pyc
 .pytest_cache
+validation_data

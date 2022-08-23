@@ -13,18 +13,24 @@ using namespace ROOT::Math;
 
 extern "C"
 {
-	const double MUON_MASS = 0.1056583755;
-	const double PROTON_MASS = 0.93827208816;
-	const double PROTON_ENERGY = 13000.0;
+	constexpr double MUON_MASS = 0.1056583755;
+	constexpr double PROTON_MASS = 0.93827208816;
+	constexpr double PROTON_ENERGY = 13000.0;
+
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
+	// EXTREME
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
 
 	double upsilon_polarization_cos_angle(double pt_mu_plus, double eta_mu_plus, double phi_mu_plus, double pt_mu_minus, double eta_mu_minus, double phi_mu_minus)
 	{
-		auto gen_mu_plus = PtEtaPhiMVector(pt_mu_plus, eta_mu_plus, phi_mu_plus, MUON_MASS);
-		auto gen_mu_minus = PtEtaPhiMVector(pt_mu_minus, eta_mu_minus, phi_mu_minus, MUON_MASS);
+		const auto gen_mu_plus = PtEtaPhiMVector(pt_mu_plus, eta_mu_plus, phi_mu_plus, MUON_MASS);
+		const auto gen_mu_minus = PtEtaPhiMVector(pt_mu_minus, eta_mu_minus, phi_mu_minus, MUON_MASS);
 
-		auto upsilon_CM = (gen_mu_plus + gen_mu_minus);
+		const auto upsilon_CM = (gen_mu_plus + gen_mu_minus);
 
-		auto gen_mu_plus_upsilon_frame = VectorUtil::boost(gen_mu_plus, upsilon_CM.BoostToCM());
+		const auto gen_mu_plus_upsilon_frame = VectorUtil::boost(gen_mu_plus, upsilon_CM.BoostToCM());
 
 		return VectorUtil::CosTheta(gen_mu_plus_upsilon_frame, upsilon_CM);
 	}
@@ -39,9 +45,9 @@ extern "C"
 		}
 
 		// polarization weight
-		auto polWgt_Nominal = 1.0;								  // unpolarized
-		auto polWgt_PLUS = (3. / 4.) * (1. + pow(cos_angle, 2));  // transverse
-		auto polWgt_MINUS = (3. / 2.) * (1. - pow(cos_angle, 2)); // longitudinal
+		const auto polWgt_Nominal = 1.0;								// unpolarized
+		const auto polWgt_PLUS = (3. / 4.) * (1. + pow(cos_angle, 2));	// transverse
+		const auto polWgt_MINUS = (3. / 2.) * (1. - pow(cos_angle, 2)); // longitudinal
 
 		double polarization_weight = 0.;
 		if (syst == -1)
@@ -59,6 +65,70 @@ extern "C"
 
 		return polarization_weight;
 	}
+
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
+	// ALTERNATIVE
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
+
+	double get_cos_angle_alternative_method(
+		const double &pt_mu_plus,
+		const double &eta_mu_plus,
+		const double &phi_mu_plus,
+		const double &pt_mu_minus,
+		const double &eta_mu_minus,
+		const double &phi_mu_minus,
+		const double &pt_photon,
+		const double &eta_photon,
+		const double &phi_photon)
+	{
+		// define particles
+		const auto gen_mu_plus = PtEtaPhiMVector(pt_mu_plus, eta_mu_plus, phi_mu_plus, MUON_MASS);
+		const auto gen_mu_minus = PtEtaPhiMVector(pt_mu_minus, eta_mu_minus, phi_mu_minus, MUON_MASS);
+		const auto upsilon = (gen_mu_plus + gen_mu_minus);
+		const auto photon = PtEtaPhiMVector(pt_photon, eta_photon, phi_photon, 0.0);
+		const auto boson = (upsilon + photon);
+
+		// Upsilon in the Z rest frame
+		const auto upsilon_Z_rest_frame = VectorUtil::boost(upsilon, boson.BoostToCM());
+
+		// positive muon in the Upsilon rest frame
+		const auto gen_mu_plus_upsilon_rest_frame = VectorUtil::boost(gen_mu_plus, upsilon.BoostToCM());
+
+		return VectorUtil::CosTheta(upsilon_Z_rest_frame, gen_mu_plus_upsilon_rest_frame);
+	}
+
+	double get_weight_alternative_method(
+		const double &pt_mu_plus,
+		const double &eta_mu_plus,
+		const double &phi_mu_plus,
+		const double &pt_mu_minus,
+		const double &eta_mu_minus,
+		const double &phi_mu_minus,
+		const double &pt_photon,
+		const double &eta_photon,
+		const double &phi_photon,
+		const int syst)
+	{
+		// check syst input
+		if (syst != -1 && syst != 0 && syst != +1)
+		{
+			printf("[ERROR] [POLARIZATION WEIGHT] Invalid argument. \"syst\" should be -1 (longitudinal), 0 (unpolarized) or +1 (transverse).");
+			exit(-1);
+		}
+
+		const double cos_angle = get_cos_angle_alternative_method(pt_mu_plus, eta_mu_plus, phi_mu_plus, pt_mu_minus, eta_mu_minus, phi_mu_minus, pt_photon, eta_photon, phi_photon);
+
+		// polarization weight
+		return 1.0 - (1.0 / 3.0) * cos_angle;
+	}
+
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
+	// FULL
+	/////////////////////////////////////////////////////
+	/////////////////////////////////////////////////////
 
 	// Full Method
 	// REF: https://indico.cern.ch/event/723934/contributions/2977415/attachments/1646018/2630726/PFaccioli_CMS_8May2018.pdf#search=Pietro%20Faccioli
@@ -100,16 +170,16 @@ extern "C"
 						  const double &phi_photon)
 	{
 		// define particles
-		auto gen_mu_plus = PtEtaPhiMVector(pt_mu_plus, eta_mu_plus, phi_mu_plus, MUON_MASS);
-		auto gen_mu_minus = PtEtaPhiMVector(pt_mu_minus, eta_mu_minus, phi_mu_minus, MUON_MASS);
-		auto upsilon = (gen_mu_plus + gen_mu_minus);
-		auto photon = PtEtaPhiMVector(pt_photon, eta_photon, phi_photon, 0.0);
-		auto boson = (upsilon + photon);
+		const auto gen_mu_plus = PtEtaPhiMVector(pt_mu_plus, eta_mu_plus, phi_mu_plus, MUON_MASS);
+		const auto gen_mu_minus = PtEtaPhiMVector(pt_mu_minus, eta_mu_minus, phi_mu_minus, MUON_MASS);
+		const auto upsilon = (gen_mu_plus + gen_mu_minus);
+		const auto photon = PtEtaPhiMVector(pt_photon, eta_photon, phi_photon, 0.0);
+		const auto boson = (upsilon + photon);
 
 		// define beam beam and target
 		const double PROTON_MOMEMTUM = sqrt(pow2(PROTON_ENERGY) - pow2(PROTON_MASS));
-		auto proton_plus = PxPyPzEVector(0., 0., PROTON_MOMEMTUM, PROTON_ENERGY);
-		auto proton_minus = PxPyPzEVector(0., 0., -PROTON_MOMEMTUM, PROTON_ENERGY);
+		const auto proton_plus = PxPyPzEVector(0., 0., PROTON_MOMEMTUM, PROTON_ENERGY);
+		const auto proton_minus = PxPyPzEVector(0., 0., -PROTON_MOMEMTUM, PROTON_ENERGY);
 
 		PxPyPzEVector beam;	  // beam
 		PxPyPzEVector target; // target
@@ -127,7 +197,7 @@ extern "C"
 		}
 
 		// // just trying to swap the beam x target definition
-		// if (boson.pz() <= 0)
+		// if (boson.pz() < 0)
 		// {
 		// 	beam = proton_plus;
 		// 	target = proton_minus;
@@ -139,43 +209,44 @@ extern "C"
 		// }
 
 		// beta to boost to CS frame
-		auto beta_boson = boson.BoostToCM();
+		const auto beta_boson = boson.BoostToCM();
 
 		// boost to CS frame
-		auto upsilon_CS_frame = VectorUtil::boost(upsilon, beta_boson);
+		const auto upsilon_CS_frame = VectorUtil::boost(upsilon, beta_boson);
 		// auto photon_CS_frame = VectorUtil::boost(photon, beta_boson); // not used
-		auto beam_CS_frame = VectorUtil::boost(beam, beta_boson);
-		auto target_CS_frame = VectorUtil::boost(target, beta_boson);
+		const auto beam_CS_frame = VectorUtil::boost(beam, beta_boson);
+		const auto target_CS_frame = VectorUtil::boost(target, beta_boson);
 
 		// Determine x, y and z axis for the CS frame
-		auto z_axis_CS_frame = (beam_CS_frame.Vect().Unit() - target_CS_frame.Vect().Unit()).Unit();
-		auto y_axis_CS_frame = (beam_CS_frame.Vect().Unit().Cross(target_CS_frame.Vect().Unit())).Unit();
-		auto x_axis_CS_frame = y_axis_CS_frame.Cross(z_axis_CS_frame).Unit();
+		const auto z_axis_CS_frame = (beam_CS_frame.Vect().Unit() - target_CS_frame.Vect().Unit()).Unit();
+		const auto y_axis_CS_frame = (beam_CS_frame.Vect().Unit().Cross(-target_CS_frame.Vect().Unit())).Unit();
+		const auto x_axis_CS_frame = y_axis_CS_frame.Cross(z_axis_CS_frame).Unit();
 
 		// BIG_PHI
-		double BIG_PHI = TMath::ATan2((upsilon_CS_frame.Vect()).Dot(y_axis_CS_frame), ((upsilon_CS_frame.Vect()).Dot(x_axis_CS_frame)));
+		// https://en.wikipedia.org/wiki/Atan2#/media/File:Arctangent2.svg
+		const double BIG_PHI = TMath::ATan2((upsilon_CS_frame.Vect()).Dot(y_axis_CS_frame), ((upsilon_CS_frame.Vect()).Dot(x_axis_CS_frame)));
 
 		// cos_BIG_THETA
-		double cos_BIG_THETA = z_axis_CS_frame.Dot((upsilon_CS_frame.Vect()).Unit());
+		const double cos_BIG_THETA = z_axis_CS_frame.Dot((upsilon_CS_frame.Vect()).Unit());
 		// Theta CS is not properly defined for Like-Sign (?)
-		if (cos_BIG_THETA < 0)
-			cos_BIG_THETA = -cos_BIG_THETA;
-		double BIG_THETA = acos(cos_BIG_THETA);
+		// if (cos_BIG_THETA < 0)
+		// 	cos_BIG_THETA = -cos_BIG_THETA;
+		const double BIG_THETA = acos(cos_BIG_THETA);
 
 		// rigid translation to the upsilon CM frame
 		// z axis is preserved
-		auto gen_mu_plus_upsilon_frame = VectorUtil::boost(gen_mu_plus, upsilon.BoostToCM());
+		const auto gen_mu_plus_upsilon_frame = VectorUtil::boost(gen_mu_plus, upsilon.BoostToCM());
 		// auto gen_mu_minus_upsilon_frame = VectorUtil::boost(gen_mu_minus, upsilon.BoostToCM()); // not used
 
 		// phi
-		double phi = TMath::ATan2((gen_mu_plus_upsilon_frame.Vect()).Dot(y_axis_CS_frame), ((gen_mu_plus_upsilon_frame.Vect()).Dot(x_axis_CS_frame)));
+		const double phi = TMath::ATan2((gen_mu_plus_upsilon_frame.Vect()).Dot(y_axis_CS_frame), ((gen_mu_plus_upsilon_frame.Vect()).Dot(x_axis_CS_frame)));
 
 		// cos_theta
-		double cos_theta = z_axis_CS_frame.Dot((gen_mu_plus_upsilon_frame.Vect()).Unit());
+		const double cos_theta = z_axis_CS_frame.Dot((gen_mu_plus_upsilon_frame.Vect()).Unit());
 		// Theta CS is not properly defined for Like-Sign  (?)
-		if (cos_theta < 0)
-			cos_theta = -cos_theta;
-		double theta = acos(cos_theta);
+		// if (cos_theta < 0)
+		// 	cos_theta = -cos_theta;
+		const double theta = acos(cos_theta);
 
 		auto cs_angles = CSAngles();
 		cs_angles.BIG_PHI = BIG_PHI;
@@ -260,7 +331,7 @@ extern "C"
 		coefficients_hists.A1_high_y_syst = static_cast<void *>(&A1_high_y_syst_hist_);
 		coefficients_hists.A2_high_y_syst = static_cast<void *>(&A2_high_y_syst_hist_);
 
-		return static_cast<void*>(&coefficients_hists);
+		return static_cast<void *>(&coefficients_hists);
 	}
 
 	typedef struct AngularCoefficients
@@ -275,20 +346,20 @@ extern "C"
 		auto angular_coefficients = AngularCoefficients();
 		if (fabs(z_rapidity) < 1.0)
 		{
-			auto h_A0 = static_cast<TH1F *>(coefficients_hists.A0_low_y);
-			auto h_A1 = static_cast<TH1F *>(coefficients_hists.A1_low_y);
-			auto h_A2 = static_cast<TH1F *>(coefficients_hists.A2_low_y);
+			const auto h_A0 = static_cast<TH1F *>(coefficients_hists.A0_low_y);
+			const auto h_A1 = static_cast<TH1F *>(coefficients_hists.A1_low_y);
+			const auto h_A2 = static_cast<TH1F *>(coefficients_hists.A2_low_y);
 			angular_coefficients.A0 = get_bin_content(qT, h_A0);
 			angular_coefficients.A1 = get_bin_content(qT, h_A1);
 			angular_coefficients.A2 = get_bin_content(qT, h_A2);
 			if (syst == -1 || syst == +1)
 			{
-				auto h_A0_stat = static_cast<TH1F *>(coefficients_hists.A0_low_y_stat);
-				auto h_A1_stat = static_cast<TH1F *>(coefficients_hists.A1_low_y_stat);
-				auto h_A2_stat = static_cast<TH1F *>(coefficients_hists.A2_low_y_stat);
-				auto h_A0_syst = static_cast<TH1F *>(coefficients_hists.A0_low_y_syst);
-				auto h_A1_syst = static_cast<TH1F *>(coefficients_hists.A1_low_y_syst);
-				auto h_A2_syst = static_cast<TH1F *>(coefficients_hists.A2_low_y_syst);
+				const auto h_A0_stat = static_cast<TH1F *>(coefficients_hists.A0_low_y_stat);
+				const auto h_A1_stat = static_cast<TH1F *>(coefficients_hists.A1_low_y_stat);
+				const auto h_A2_stat = static_cast<TH1F *>(coefficients_hists.A2_low_y_stat);
+				const auto h_A0_syst = static_cast<TH1F *>(coefficients_hists.A0_low_y_syst);
+				const auto h_A1_syst = static_cast<TH1F *>(coefficients_hists.A1_low_y_syst);
+				const auto h_A2_syst = static_cast<TH1F *>(coefficients_hists.A2_low_y_syst);
 				angular_coefficients.A0 += ((double)syst) * sqrt(pow2(get_bin_content(qT, h_A0_stat)) + pow2(get_bin_content(qT, h_A0_syst)));
 				angular_coefficients.A1 += ((double)syst) * sqrt(pow2(get_bin_content(qT, h_A1_stat)) + pow2(get_bin_content(qT, h_A1_syst)));
 				angular_coefficients.A2 += ((double)syst) * sqrt(pow2(get_bin_content(qT, h_A2_stat)) + pow2(get_bin_content(qT, h_A2_syst)));
@@ -296,20 +367,20 @@ extern "C"
 		}
 		else
 		{
-			auto h_A0 = static_cast<TH1F *>(coefficients_hists.A0_high_y);
-			auto h_A1 = static_cast<TH1F *>(coefficients_hists.A1_high_y);
-			auto h_A2 = static_cast<TH1F *>(coefficients_hists.A2_high_y);
+			const auto h_A0 = static_cast<TH1F *>(coefficients_hists.A0_high_y);
+			const auto h_A1 = static_cast<TH1F *>(coefficients_hists.A1_high_y);
+			const auto h_A2 = static_cast<TH1F *>(coefficients_hists.A2_high_y);
 			angular_coefficients.A0 = get_bin_content(qT, h_A0);
 			angular_coefficients.A1 = get_bin_content(qT, h_A1);
 			angular_coefficients.A2 = get_bin_content(qT, h_A2);
 			if (syst == -1 || syst == +1)
 			{
-				auto h_A0_stat = static_cast<TH1F *>(coefficients_hists.A0_high_y_stat);
-				auto h_A1_stat = static_cast<TH1F *>(coefficients_hists.A1_high_y_stat);
-				auto h_A2_stat = static_cast<TH1F *>(coefficients_hists.A2_high_y_stat);
-				auto h_A0_syst = static_cast<TH1F *>(coefficients_hists.A0_high_y_syst);
-				auto h_A1_syst = static_cast<TH1F *>(coefficients_hists.A1_high_y_syst);
-				auto h_A2_syst = static_cast<TH1F *>(coefficients_hists.A2_high_y_syst);
+				const auto h_A0_stat = static_cast<TH1F *>(coefficients_hists.A0_high_y_stat);
+				const auto h_A1_stat = static_cast<TH1F *>(coefficients_hists.A1_high_y_stat);
+				const auto h_A2_stat = static_cast<TH1F *>(coefficients_hists.A2_high_y_stat);
+				const auto h_A0_syst = static_cast<TH1F *>(coefficients_hists.A0_high_y_syst);
+				const auto h_A1_syst = static_cast<TH1F *>(coefficients_hists.A1_high_y_syst);
+				const auto h_A2_syst = static_cast<TH1F *>(coefficients_hists.A2_high_y_syst);
 				angular_coefficients.A0 += ((double)syst) * sqrt(pow2(get_bin_content(qT, h_A0_stat)) + pow2(get_bin_content(qT, h_A0_syst)));
 				angular_coefficients.A1 += ((double)syst) * sqrt(pow2(get_bin_content(qT, h_A1_stat)) + pow2(get_bin_content(qT, h_A1_syst)));
 				angular_coefficients.A2 += ((double)syst) * sqrt(pow2(get_bin_content(qT, h_A2_stat)) + pow2(get_bin_content(qT, h_A2_syst)));
@@ -340,18 +411,18 @@ extern "C"
 			exit(-1);
 		}
 
-		auto coefficients_hists = *(static_cast<CoefficientsHists *>(coefficients_hists_ptr));
+		const auto coefficients_hists = *(static_cast<CoefficientsHists *>(coefficients_hists_ptr));
 
-		auto cs_angles = get_CSAngles(pt_mu_plus, eta_mu_plus, phi_mu_plus, pt_mu_minus, eta_mu_minus, phi_mu_minus, pt_photon, eta_photon, phi_photon);
-		double T = cs_angles.BIG_THETA;
-		double P = cs_angles.BIG_PHI;
-		double t = cs_angles.theta;
-		double p = cs_angles.phi;
+		const auto cs_angles = get_CSAngles(pt_mu_plus, eta_mu_plus, phi_mu_plus, pt_mu_minus, eta_mu_minus, phi_mu_minus, pt_photon, eta_photon, phi_photon);
+		const double T = cs_angles.BIG_THETA;
+		const double P = cs_angles.BIG_PHI;
+		const double t = cs_angles.theta;
+		const double p = cs_angles.phi;
 
-		auto angular_coefficients = get_angular_coefficients(coefficients_hists, z_rapidity, qT, syst);
-		double A0 = angular_coefficients.A0;
-		double A1 = angular_coefficients.A1;
-		double A2 = angular_coefficients.A2;
+		const auto angular_coefficients = get_angular_coefficients(coefficients_hists, z_rapidity, qT, syst);
+		const double A0 = angular_coefficients.A0;
+		const double A1 = angular_coefficients.A1;
+		const double A2 = angular_coefficients.A2;
 
 		double w = 0.0;
 		w += -4;
